@@ -1,6 +1,9 @@
 # Certification Challenge – Deliverable Checklist  
 **Due August 5, 2025 at 4 PM PT**
 # SprintScribe
+# Loom Video
+https://www.loom.com/share/3b7d85a3482c4926ba96c3b80c02877a?sid=1aef7585-8b8b-48ce-b283-a7ac694ee405
+
 ## Task 1 — Define Problem & Audience  
 **Role:** *AI Solutions Engineer*
 1. **One-sentence problem statement**  
