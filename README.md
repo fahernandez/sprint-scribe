@@ -1,41 +1,99 @@
-# AI SDK Python Streaming Preview
+# SprintScribe
 
-This template demonstrates the usage of [Data Stream Protocol](https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol#data-stream-protocol) to stream chat completions from a Python endpoint ([FastAPI](https://fastapi.tiangolo.com)) and display them using the [useChat](https://sdk.vercel.ai/docs/ai-sdk-ui/chatbot#chatbot) hook in your Next.js application.
+SprintScribe is an AI-powered application that helps tech leads convert statements of work (SOW) into detailed implementation plans using historical Jira data and web research.
 
-## Deploy your own
+## Features
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai-sdk-preview-python-streaming&env=OPENAI_API_KEY&envDescription=API%20keys%20needed%20for%20application&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai-sdk-preview-python-streaming%2Fblob%2Fmain%2F.env.example)
+- **Intelligent Plan Generation**: Converts SOW tasks into structured epics and tickets
+- **Historical Knowledge**: Leverages past Jira tickets and epics for context
+- **Web Research Integration**: Automatically researches new technologies and best practices
+- **Agentic RAG Architecture**: Uses LangGraph for sophisticated reasoning and retrieval
 
-## How to use
+## How It Works
 
-Run [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
+1. **Input**: Enter a statement of work task or requirement
+2. **Analysis**: The system checks if the task relates to existing company knowledge (Jira epics)
+3. **Generation**: 
+   - If related to existing work: Extracts relevant tickets from historical epics
+   - If new technology: Searches web for best practices and generates new implementation plan
+4. **Output**: Returns structured epics with detailed tickets and acceptance criteria
 
-```bash
-npx create-next-app --example https://github.com/vercel-labs/ai-sdk-preview-python-streaming ai-sdk-preview-python-streaming-example
-```
+## Architecture
 
-```bash
-yarn create next-app --example https://github.com/vercel-labs/ai-sdk-preview-python-streaming ai-sdk-preview-python-streaming-example
-```
+- **Backend**: FastAPI with LangGraph agent
+- **Frontend**: Next.js with React components
+- **AI Models**: OpenAI GPT-4 for generation, OpenAI embeddings for retrieval
+- **Data Sources**: Jira tickets/epics, web search via Tavily
+- **Vector Store**: Qdrant for semantic search
 
-```bash
-pnpm create next-app --example https://github.com/vercel-labs/ai-sdk-preview-python-streaming ai-sdk-preview-python-streaming-example
-```
+## Setup
 
-To run the example locally you need to:
+1. Install Python dependencies:
+   ```bash
+   uv sync
+   ```
 
-1. Sign up for accounts with the AI providers you want to use (e.g., OpenAI, Anthropic).
-2. Obtain API keys for each provider.
-3. Set the required environment variables as shown in the `.env.example` file, but in a new file called `.env`.
-4. `pnpm install` to install the required Node dependencies.
-5. `virtualenv venv` to create a virtual environment.
-6. `source venv/bin/activate` to activate the virtual environment.
-7. `pip install -r requirements.txt` to install the required Python dependencies.
-8. `pnpm dev` to launch the development server.
+2. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
 
-## Learn More
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
+   Add your API keys:
+   - `OPENAI_API_KEY`
+   - `TAVILY_API_KEY`
+   - `LANGCHAIN_API_KEY` (optional, for tracing)
 
-To learn more about the AI SDK or Next.js by Vercel, take a look at the following resources:
+4. Start the development servers:
+   ```bash
+   # Backend (FastAPI)
+   uvicorn api.index:app --reload --port 8000
 
-- [AI SDK Documentation](https://sdk.vercel.ai/docs)
-- [Next.js Documentation](https://nextjs.org/docs)
+   # Frontend (Next.js)
+   npm run dev
+   ```
+
+## Usage
+
+1. Navigate to `http://localhost:3000`
+2. Enter a statement of work task in the text area
+3. Click "Generate Implementation Plan"
+4. Review the generated epics and tickets
+
+## Example Queries
+
+- "Set up Azure Data Factory for data pipeline processing"
+- "Implement user authentication with OAuth 2.0"
+- "Create REST API endpoints for data access"
+- "Deploy infrastructure using Terraform"
+
+## Sample Data
+
+The application includes sample Jira data in the `data/` directory:
+- `TF-Task.csv`: Sample tickets with descriptions and epic relationships
+- `TF-EPIC.csv`: Sample epics with summaries
+
+## Development
+
+### Backend Structure
+- `api/index.py`: FastAPI server with endpoints
+- `api/utils/agent.py`: SprintScribe agent implementation
+- `api/utils/prompt.py`: Prompt utilities
+- `api/utils/tools.py`: Tool functions
+
+### Frontend Structure
+- `components/sprint-scribe.tsx`: Main SprintScribe interface
+- `app/(chat)/page.tsx`: Main application page
+
+## API Endpoints
+
+- `POST /api/sprint-scribe`: Generate implementation plan
+- `GET /api/health`: Health check
+- `POST /api/chat`: Chat interface (existing)
+
+## License
+
+MIT License - see LICENSE file for details.

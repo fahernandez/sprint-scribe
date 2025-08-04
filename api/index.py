@@ -1,7 +1,9 @@
 import os
 import json
 from typing import List
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
+from openai.types.chat.chat_completion_message_param import (
+    ChatCompletionMessageParam
+)
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query
@@ -9,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from openai import OpenAI
 from .utils.prompt import ClientMessage, convert_to_openai_messages
 from .utils.tools import get_current_weather
-
+from .utils.agent import agent
 
 load_dotenv(".env.local")
 
@@ -24,9 +26,14 @@ class Request(BaseModel):
     messages: List[ClientMessage]
 
 
+class SprintScribeRequest(BaseModel):
+    query: str
+
+
 available_tools = {
     "get_current_weather": get_current_weather,
 }
+
 
 def do_stream(messages: List[ChatCompletionMessageParam]):
     stream = client.chat.completions.create(
@@ -55,8 +62,8 @@ def do_stream(messages: List[ChatCompletionMessageParam]):
             },
         }]
     )
-
     return stream
+
 
 def stream_text(messages: List[ChatCompletionMessageParam], protocol: str = 'data'):
     draft_tool_calls = []
@@ -96,20 +103,22 @@ def stream_text(messages: List[ChatCompletionMessageParam], protocol: str = 'dat
 
             elif choice.finish_reason == "tool_calls":
                 for tool_call in draft_tool_calls:
-                    yield '9:{{"toolCallId":"{id}","toolName":"{name}","args":{args}}}\n'.format(
-                        id=tool_call["id"],
-                        name=tool_call["name"],
-                        args=tool_call["arguments"])
+                    yield ('9:{{"toolCallId":"{id}","toolName":"{name}",'
+                          '"args":{args}}}\n'.format(
+                              id=tool_call["id"],
+                              name=tool_call["name"],
+                              args=tool_call["arguments"]))
 
                 for tool_call in draft_tool_calls:
                     tool_result = available_tools[tool_call["name"]](
                         **json.loads(tool_call["arguments"]))
 
-                    yield 'a:{{"toolCallId":"{id}","toolName":"{name}","args":{args},"result":{result}}}\n'.format(
-                        id=tool_call["id"],
-                        name=tool_call["name"],
-                        args=tool_call["arguments"],
-                        result=json.dumps(tool_result))
+                    yield ('a:{{"toolCallId":"{id}","toolName":"{name}",'
+                          '"args":{args},"result":{result}}}\n'.format(
+                              id=tool_call["id"],
+                              name=tool_call["name"],
+                              args=tool_call["arguments"],
+                              result=json.dumps(tool_result)))
 
             elif choice.delta.tool_calls:
                 for tool_call in choice.delta.tool_calls:
@@ -121,7 +130,6 @@ def stream_text(messages: List[ChatCompletionMessageParam], protocol: str = 'dat
                         draft_tool_calls_index += 1
                         draft_tool_calls.append(
                             {"id": id, "name": name, "arguments": ""})
-
                     else:
                         draft_tool_calls[draft_tool_calls_index]["arguments"] += arguments
 
@@ -133,14 +141,12 @@ def stream_text(messages: List[ChatCompletionMessageParam], protocol: str = 'dat
             prompt_tokens = usage.prompt_tokens
             completion_tokens = usage.completion_tokens
 
-            yield 'e:{{"finishReason":"{reason}","usage":{{"promptTokens":{prompt},"completionTokens":{completion}}},"isContinued":false}}\n'.format(
-                reason="tool-calls" if len(
-                    draft_tool_calls) > 0 else "stop",
-                prompt=prompt_tokens,
-                completion=completion_tokens
-            )
-
-
+            yield ('e:{{"finishReason":"{reason}","usage":{{"promptTokens":'
+                   '{prompt},"completionTokens":{completion}}},'
+                   '"isContinued":false}}\n'.format(
+                       reason="tool-calls" if len(draft_tool_calls) > 0 else "stop",
+                       prompt=prompt_tokens,
+                       completion=completion_tokens))
 
 
 @app.post("/api/chat")
@@ -151,3 +157,44 @@ async def handle_chat_data(request: Request, protocol: str = Query('data')):
     response = StreamingResponse(stream_text(openai_messages, protocol))
     response.headers['x-vercel-ai-data-stream'] = 'v1'
     return response
+
+
+@app.post("/api/sprint-scribe")
+async def generate_implementation_plan(request: SprintScribeRequest):
+    """Generate implementation plan using SprintScribe agent"""
+    try:
+        result = await agent.epic_graph.ainvoke({"query": request.query})
+        
+        # Extract epic_tickets from the agent result
+        epic_tickets = result.get("epic_tickets", [])
+        
+        # If epic_tickets is a string (from LLM), parse it as JSON
+        if isinstance(epic_tickets, str):
+            try:
+                epic_tickets = json.loads(epic_tickets)
+            except json.JSONDecodeError:
+                # If parsing fails, return empty array
+                epic_tickets = []
+        
+        # Ensure epic_tickets is a list
+        if not isinstance(epic_tickets, list):
+            epic_tickets = []
+        
+        return {
+            "success": True,
+            "query": request.query,
+            "implementation_plan": epic_tickets
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "query": request.query,
+            "implementation_plan": []
+        }
+
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "SprintScribe API"}
