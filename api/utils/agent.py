@@ -210,6 +210,12 @@ You are a project analyst. Given a user query and online information about techn
 
 Format the output as a JSON list in the following structure:
 
+ONLY output the JSON list, NOTHING ELSE.
+MAKE SURE THE JSON IS VALID.
+
+Query: {query}
+Online Information: {context}
+Output:
 [
   {{
     "epic_name": "<Epic Title>",
@@ -221,14 +227,10 @@ Format the output as a JSON list in the following structure:
     ]
   }}
 ]
-
-Only output the JSON list, nothing else.
-
-Query: {query}
-Online Information: {context}
 """
 
-        gen_chain = PromptTemplate.from_template(prompt_template) | self.llm | StrOutputParser()
+        llm = ChatOpenAI(model="gpt-4o", temperature=0)
+        gen_chain = PromptTemplate.from_template(prompt_template) | llm | StrOutputParser()
         try:
             result = gen_chain.invoke({"query": query, "context": context})
             return {"epic_tickets": result}

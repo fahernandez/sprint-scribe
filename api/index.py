@@ -162,24 +162,27 @@ async def handle_chat_data(request: Request, protocol: str = Query('data')):
 @app.post("/api/sprint-scribe")
 async def generate_implementation_plan(request: SprintScribeRequest):
     """Generate implementation plan using SprintScribe agent"""
+    inputs = {"query": request.query}
+
     try:
-        result = await agent.epic_graph.ainvoke({"query": request.query})
-        
-        # Extract epic_tickets from the agent result
-        epic_tickets = result.get("epic_tickets", [])
-        
+        epic_tickets = None
+        async for chunk in agent.epic_graph.astream(inputs, stream_mode="updates"):
+            for node, values in chunk.items():
+                print(f"Receiving update from node: '{node}'")
+                if "epic_tickets" in values:
+                    epic_tickets = values["epic_tickets"]
+                print("\n")
+
         # If epic_tickets is a string (from LLM), parse it as JSON
         if isinstance(epic_tickets, str):
             try:
-                epic_tickets = json.loads(epic_tickets)
+                print("--------------------------------")
+                print(epic_tickets.replace("```json", "").replace("```", ""))
+                print("--------------------------------")
+                epic_tickets = json.loads(epic_tickets.replace("```json", "").replace("```", ""))
             except json.JSONDecodeError:
-                # If parsing fails, return empty array
-                epic_tickets = []
-        
-        # Ensure epic_tickets is a list
-        if not isinstance(epic_tickets, list):
-            epic_tickets = []
-        
+                raise Exception("Failed to parse epic_tickets")
+
         return {
             "success": True,
             "query": request.query,

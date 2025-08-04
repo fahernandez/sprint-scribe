@@ -63,7 +63,15 @@ The system uses a multi-node LangGraph agent to intelligently route queries thro
 ## Task 7 — Performance Comparison  
 **Role:** *AI Evaluation & Performance Engineer*
 
-1. Re-evaluate improved system vs. original with **RAGAS**; present a **comparison table**  
+1. Re-evaluate improved system vs. original with **RAGAS**; present a **comparison table** 
+
+| Method       | context_recall | faithfulness | factual_correctness | answer_relevancy | context_entity_recall |
+|--------------|:--------------:|:------------:|:------------------:|:----------------:|:---------------------:|
+| Naive        |     0.8889     |    0.8564    |        0.45.18         |     0.9127       |        0.5356         |
+| BM25         |     0.6296     |    0.6716    |      0.4572        |     0.7520       |        0.4301         |
+| Multi-Query  |     1.0000     |    0.8607    |      0.4522        |     0.9662       |        0.4989         |
+| Ensemble     |     0.9815     |    0.7227    |      0.4306        |     0.9099       |         NaN           |
+
 2. Summarize insights and planned next steps for the second half of the course.
 - Use similar topics to permate companies good practices when creating Jira tasks usign the internet.
 - Use agent reasoning to refine the tickets based on the engagement caracteristics.
